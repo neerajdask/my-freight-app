@@ -1,0 +1,243 @@
+openapi: 3.1.0
+info:
+  title: FreightApp API
+  version: 0.1.0
+  description: |
+    Control plane for Temporal workflows that monitor delivery routes for traffic delays
+    and notify customers when thresholds are exceeded.
+servers:
+  - url: http://localhost:3001
+    description: Local development
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /workflows/start:
+    post:
+      summary: Start a monitoring workflow
+      description: |
+        Starts `monitorDeliveryWorkflow` on task queue `deliveries` for the given delivery.
+        The workflow periodically checks traffic and sends notifications based on thresholds
+        and anti-spam rules.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartRequest'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartResponse'
+        '503':
+          description: Temporal unavailable or start failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /workflows/{id}/status:
+    get:
+      summary: Get workflow status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Workflow ID (e.g., delivery-<deliveryId>-YYYY-MM-DD)
+      responses:
+        '200':
+          description: Current workflow status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '404':
+          description: Workflow not found or Temporal unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+
+  /workflows/{id}/cancel:
+    post:
+      summary: Request workflow cancellation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Cancel request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalResponse'
+        '404':
+          description: Workflow not found or Temporal unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalResponse'
+
+  /workflows/{id}/snooze:
+    post:
+      summary: Snooze periodic checks for N minutes
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnoozeRequest'
+      responses:
+        '202':
+          description: Snooze accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalResponse'
+        '404':
+          description: Workflow not found or Temporal unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalResponse'
+
+  /workflows/{id}/route-restarted:
+    post:
+      summary: Reset anti-spam state (treat route as restarted)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Restart acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalResponse'
+        '404':
+          description: Workflow not found or Temporal unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalResponse'
+
+  /workflows/{id}/check-now:
+    post:
+      summary: Trigger an immediate check cycle
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Immediate check requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalResponse'
+        '404':
+          description: Workflow not found or Temporal unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalResponse'
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+      required: [ok]
+
+    StartRequest:
+      type: object
+      properties:
+        deliveryId:
+          type: string
+        origin:
+          type: string
+          description: Free-text address or place; consider geocoding for production
+        destination:
+          type: string
+        recipientEmail:
+          type: string
+          format: email
+        thresholdMinutes:
+          type: integer
+          minimum: 1
+          default: 30
+        notifyDeltaMinutes:
+          type: integer
+          minimum: 1
+          default: 10
+      required: [deliveryId, origin, destination, recipientEmail]
+
+    StartResponse:
+      type: object
+      properties:
+        workflowId:
+          type: string
+        runId:
+          type: string
+      required: [workflowId]
+
+    StatusResponse:
+      type: object
+      properties:
+        statusMessage:
+          type: string
+      required: [statusMessage]
+
+    SnoozeRequest:
+      type: object
+      properties:
+        minutes:
+          type: integer
+          minimum: 1
+          default: 30
+      required: [minutes]
+
+    SignalResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+        error:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string

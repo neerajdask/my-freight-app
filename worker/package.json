@@ -1,0 +1,25 @@
+{
+  "name": "freightapp-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/workers/index.js",
+  "scripts": {
+    "dev": "tsx watch src/workers/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/workers/index.js",
+    "start:cli": "tsx src/cli/start-workflow.ts",
+    "seed": "tsx src/cli/seed.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "temporalio": "^1.9.3",
+    "uuid": "^13.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "tsx": "^4.19.1",
+    "typescript": "^5.5.4"
+  }
+}
