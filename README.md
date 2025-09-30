@@ -2,6 +2,11 @@
 
 TypeScript project to monitor traffic delays on freight routes and notify customers using Temporal.
 
+#### Prerequisites
+- Node.js 18+ and npm
+- Temporal dev server:
+  - Temporal CLI: `brew install temporal` then `temporal server start-dev` (UI at http://localhost:8233)
+
 #### Structure
 ```
 packages/shared-types/   # shared DTOs and schemas
@@ -78,12 +83,10 @@ curl -X POST "http://localhost:3001/workflows/delivery-demo-$(date +%F)/check-no
 #### Future improvements
 - Add `/geocode` endpoint and accept `place_id`/lat,lng in Start requests.
 - Deterministic staggering of check times; env‑tunable polling interval.
-- Token‑bucket rate limiters per provider + circuit breakers.
 - Basic metrics (checks/sec, activity latency, error rates) and OpenTelemetry traces.
 - Optional DB for audit of deliveries/notifications and idempotency keys.
 - SMS channel (Twilio) and Slack/Webhook notifications.
 - Secrets management (platform env/manager) and production config profiles.
-- Temporal Schedules option for short‑lived workflows on a cadence.
 - Swagger UI to serve `api/openapi.yaml` locally.
 
 #### Build/run note for worker path
